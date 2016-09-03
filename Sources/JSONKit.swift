@@ -133,8 +133,7 @@ public struct JSONAnyObject<Value: JSONValueSource>: JSONObjectSource {
 }
 
 /// A type that implements all major features for `JSONValueSource`
-protocol JSONValueProvider: JSONValueSource, JSONNumberProvider, JSONPrimitiveValueProvider, JSONThrowable, JSONEnumProvider, JSONArrayProvider, JSONObjectProvider {}
-
+protocol JSONValueProvider: JSONValueSource, JSONNumberProvider, JSONPrimitiveValueProvider, JSONAdditionalValueTypesProvider, JSONThrowable, JSONEnumProvider, JSONArrayProvider, JSONObjectProvider {}
 
 /// Default container for `JSONValueProvider`
 public struct JSONAnyValue<Keys:JSONKeySource, Transformer: JSONTransformer>: JSONValueProvider {
@@ -305,45 +304,51 @@ extension JSONValueSource where Self: JSONThrowable, Self: JSONPrimitiveValuePro
     /// - throws: `JSONError` if value is nil, or invalid cast
     ///
     /// - returns: Boolean value from JSON Value
-    public func boolValue() throws -> Bool {
-        return try unwrap(value: bool)
-    }
+    public func boolValue() throws -> Bool { return try unwrap(value: bool) }
     
     /// `JSONValueSource` value represented as a Int value
     ///
     /// - throws: `JSONError` if value is nil, or invalid cast
     ///
     /// - returns: Int value from JSON Value
-    public func intValue() throws -> Int {
-        return try unwrap(value: int)
-    }
+    public func intValue() throws -> Int { return try unwrap(value: int) }
     
     /// `JSONValueSource` value represented as a Float value
     ///
     /// - throws: `JSONError` if value is nil, or invalid cast
     ///
     /// - returns: Float value from JSON Value
-    public func floatValue() throws -> Float {
-        return try unwrap(value: float)
-    }
+    public func floatValue() throws -> Float { return try unwrap(value: float) }
     
     /// `JSONValueSource` value represented as a Double value
     ///
     /// - throws: `JSONError` if value is nil, or invalid cast
     ///
     /// - returns: Double value from JSON Value
-    public func doubleValue() throws -> Double {
-        return try unwrap(value: double)
-    }
+    public func doubleValue() throws -> Double { return try unwrap(value: double) }
     
     /// `JSONValueSource` value represented as a String value
     ///
     /// - throws: `JSONError` if value is nil, or invalid cast
     ///
     /// - returns: String from  current JSON Value
-    public func stringValue() throws -> String {
-        return try unwrap(value: string)
-    }
+    public func stringValue() throws -> String { return try unwrap(value: string) }
+}
+
+extension JSONValueSource where Self: JSONThrowable, Self: JSONAdditionalValueTypesProvider {
+    
+    public func int16Value() throws -> Int16 { return try unwrap(value: int16) }
+    
+    public func uInt16Value() throws -> UInt16 { return try unwrap(value: uInt16) }
+    
+    public func int32Value() throws -> Int32 { return try unwrap(value: int32) }
+    
+    public func uInt32Value() throws -> UInt32 { return try unwrap(value: uInt32) }
+    
+    public func int64Value() throws -> Int64 { return try unwrap(value: int64) }
+    
+    public func uint64Value() throws -> UInt64 { return try unwrap(value: uInt64) }
+    
 }
 
 extension JSONValueSource where Self: JSONThrowable, Self: JSONNumberProvider {
@@ -403,23 +408,31 @@ public protocol JSONPrimitiveValueProvider {
     
 }
 
+public protocol JSONAdditionalValueTypesProvider {
+    
+    var int16: Int16? { get }
+    
+    var uInt16: UInt16? { get }
+    
+    var int32: Int32? { get }
+    
+    var uInt32: UInt32? { get }
+    
+    var int64: Int64? { get }
+    
+    var uInt64: UInt64? { get }
+    
+}
+
 extension JSONValueSource where Self: JSONPrimitiveValueProvider, Self: JSONNumberProvider {
     
-    public var bool: Bool? {
-        return number()
-    }
+    public var bool: Bool? { return number() }
     
-    public var int: Int? {
-        return number()
-    }
+    public var int: Int? { return number() }
     
-    public var double: Double? {
-        return number()
-    }
+    public var double: Double? { return number() }
     
-    public var float: Float? {
-        return number()
-    }
+    public var float: Float? { return number() }
     
     public var string: String? {
         return rawValue as? String
@@ -428,6 +441,21 @@ extension JSONValueSource where Self: JSONPrimitiveValueProvider, Self: JSONNumb
     public var dictionary: [String: AnyObject]? {
         return rawValue as? [String: AnyObject]
     }
+}
+
+extension JSONValueSource where Self: JSONAdditionalValueTypesProvider, Self: JSONNumberProvider {
+    
+    public var int16: Int16? { return number() }
+    
+    public var uInt16: UInt16? { return number() }
+    
+    public var int32: Int32? { return number() }
+    
+    public var uInt32: UInt32? { return number() }
+    
+    public var int64: Int64? { return number() }
+    
+    public var uInt64: UInt64? { return number() }
     
 }
 
@@ -466,12 +494,25 @@ public extension JSONValueSource where Self: JSONObjectProvider {
     }
 }
 
+/// A type that provides number versions of rawValue
 public protocol JSONNumberProvider {
     
     var rawNumber: NSNumber? { get }
     
     func number<T: JSONNumber>() -> T?
     
+    func number<T: JSONNumber>() -> T
+    
+}
+
+extension JSONNumberProvider {
+    public func number<T: JSONNumber>() -> T {
+        if let num: T = number() {
+            return num
+        } else {
+            return T.from(number: NSNumber(value: 0))
+        }
+    }
 }
 
 extension JSONValueSource where Self: JSONNumberProvider {
@@ -485,14 +526,6 @@ extension JSONValueSource where Self: JSONNumberProvider {
             return T.from(number: value)
         } else {
             return nil
-        }
-    }
-    
-    public func number<T: JSONNumber>() -> T {
-        if let num: T = number() {
-            return num
-        } else {
-            return T.from(number: NSNumber(value: 0))
         }
     }
 }
