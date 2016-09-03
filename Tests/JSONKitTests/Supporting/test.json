@@ -1,0 +1,18 @@
+{
+  "integer": 7,
+  "decimal": 12.345,
+  "string": "Hello World",
+  "bool": true,
+  "dictionary": {"food": "bacon"},
+  "numbers": [5,10,15],
+  "strings": ["foo", "bar", "bacon"],
+  "decimals": [1.23, 5.55, 9.0],
+  "animals": [0,2,1],
+  "subjects": ["math", "physics", "english"],
+  "animal": 1,
+  "dates": [1472722906, 1472722907],
+  "timelineDate": ["2016-09-02T12:09:01+10:00"],
+  "timelineEpoch": [1472782141.303575],
+  "date": "2016-09-02T12:09:01+10:00"
+
+}
