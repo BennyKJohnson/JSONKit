@@ -57,16 +57,16 @@ extension JSONValueSource where Self: JSONPrimitiveValueProvider, Self: JSONNumb
 public protocol JSONObjectProvider: JSONPrimitiveValueProvider {
     
     func object<T: JSONObjectSource>() -> T?
-    
+        
 }
 
 public extension JSONValueSource where Self: JSONObjectProvider {
     
     // Add property to return object with same key source
     
-    public var rawObject: JSONCustomObject<Self>? {
+    public var rawObject: JSONAnyObject<Self>? {
         if let dictionary = dictionary {
-            return JSONCustomObject<Self>(dictionary: dictionary)
+            return JSONAnyObject<Self>(dictionary: dictionary)
         } else {
             return nil
         }
@@ -79,6 +79,12 @@ public extension JSONValueSource where Self: JSONObjectProvider {
             return T(dictionary: jsonObject)
         } else {
             return nil
+        }
+    }
+    
+    public subscript(key: KeySource) -> Self {
+        get {
+            return Self(rawValue: dictionary?[key.keyValue])
         }
     }
 }
@@ -156,10 +162,10 @@ extension JSONValueSource where Self: JSONArrayProvider {
     }
 }
 
-extension JSONValueSource where Self: JSONArrayProvider, JSONType: JSONValueSource {
-    subscript(_ index: Int) -> JSONType {
+extension JSONValueSource where Self: JSONArrayProvider {
+   public subscript(_ index: Int) -> Self {
         get {
-            return JSONType(rawValue: rawArray?[index])
+            return Self(rawValue: rawArray?[index])
         }
     }
 }

@@ -17,9 +17,7 @@ public protocol JSONValueSource {
     var rawValue: AnyObject? { get }
     
     init(rawValue: AnyObject?)
-    
-   // associatedtype JSONObjectType: JSONObjectContainer
-    
+        
     associatedtype KeySource: JSONKeySource
      
     associatedtype JSONType = JSONValueType

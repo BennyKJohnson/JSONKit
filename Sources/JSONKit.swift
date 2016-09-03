@@ -12,7 +12,13 @@ public extension RawRepresentable where RawValue == String {
     }
 }
 
-public struct JSONCustomObject<Value: JSONValueSource>: JSONObjectSource {
+struct JSONDefaultKey: JSONKeySource {
+    var keyValue: String {
+        fatalError("Cannot use keys for \(self.self)")
+    }
+}
+
+public struct JSONAnyObject<Value: JSONValueSource>: JSONObjectSource {
     
     public typealias KeySource = Value.KeySource
     
@@ -28,10 +34,7 @@ public struct JSONCustomObject<Value: JSONValueSource>: JSONObjectSource {
 
 protocol JSONValueProvider: JSONValueSource, JSONNumberProvider, JSONPrimitiveValueProvider, JSONThrowable, JSONEnumProvider, JSONArrayProvider, JSONObjectProvider {}
 
-
-public protocol JSONDefaultValueSource {}
-
-public struct JSONCustomValue<Keys:JSONKeySource, Transformer: JSONTransformer>: JSONValueProvider {
+public struct JSONAnyValue<Keys:JSONKeySource, Transformer: JSONTransformer>: JSONValueProvider {
     
     public let rawValue: AnyObject?
     
@@ -48,6 +51,7 @@ public struct JSONCustomValue<Keys:JSONKeySource, Transformer: JSONTransformer>:
 }
 
 // Convenience default unwrappers
-public typealias JSONValue<Keys: JSONKeySource> = JSONCustomValue<Keys, JSONDefaultTransformer>
 
-public typealias JSONObject<Keys: JSONKeySource> = JSONCustomObject<JSONValue<Keys>>
+public typealias JSONValue<Keys: JSONKeySource> = JSONAnyValue<Keys, JSONDefaultTransformer>
+
+public typealias JSONObject<Keys: JSONKeySource> = JSONAnyObject<JSONValue<Keys>>

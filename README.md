@@ -1,11 +1,10 @@
 # JSONKit
-The most personal Swift JSON Mapping library.
+The most personal Swift JSON Mapping library. JSONKit makes JSON mapping simpler and safer.  
 
 ## Features
 - [x] Easily map value types, arrays and enums from JSON values
 - [x] Supports custom types
 - [x] Modular, extend or modify behaviour of mapping
-
 
 ## Usage
 ### Initalizing

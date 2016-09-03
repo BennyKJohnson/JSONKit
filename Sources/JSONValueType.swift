@@ -12,15 +12,6 @@ public protocol JSONCustomConvertible {
     
     static func map(value: Any, for transformer: JSONTransformer.Type) -> Self?
     
-    static func transform(array: [Self]) -> [Self]?
-    
-    
-}
-
-extension JSONCustomConvertible {
-    public static func transform(array: [Self]) -> [Self]? {
-        return array
-    }
 }
 
 public protocol JSONValueType: JSONCustomConvertible {}
@@ -32,7 +23,3 @@ extension String: JSONValueType {
     }
 }
 
-extension JSONObjectSource {
-    public typealias PrimitiveType = [String: AnyObject]
-    
-}

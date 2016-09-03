@@ -11,9 +11,7 @@ import Foundation
 public protocol JSONNumber: JSONValueType {
     
     static func from(number: NSNumber) -> Self
-    
-    associatedtype PrimitiveType = NSNumber
-    
+        
 }
 
 extension Int8: JSONNumber {

@@ -57,9 +57,9 @@ class DateFormatterCache {
 
 struct CustomValueTransformer: JSONTransformer {}
 
-typealias MyJSONValue<Keys: JSONKeySource> = JSONCustomValue<Keys, CustomValueTransformer>
+typealias MyJSONValue<Keys: JSONKeySource> = JSONAnyValue<Keys, CustomValueTransformer>
 
-typealias MyJSONObject<Keys: JSONKeySource> = JSONCustomObject<MyJSONValue<Keys>>
+typealias MyJSONObject<Keys: JSONKeySource> = JSONAnyObject<MyJSONValue<Keys>>
 
 extension JSONValueProvider where TransformerType == CustomValueTransformer {
     var date: Date? {
