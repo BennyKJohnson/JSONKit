@@ -22,6 +22,7 @@ public enum JSONError: Error, CustomStringConvertible {
     }
 }
 
+/// A type that has throwable value functions
 public protocol JSONThrowable: JSONKeyProvider {
     func getJSONError() -> JSONError
 }
@@ -46,23 +47,49 @@ extension JSONValueSource where Self: JSONThrowable {
 }
 
 extension JSONValueSource where Self: JSONThrowable, Self: JSONPrimitiveValueProvider {
+
     
+    /// `JSONValueSource` value represented as a Boolean value
+    ///
+    /// - throws: `JSONError` if value is nil, or invalid cast
+    ///
+    /// - returns: Boolean value from JSON Value
     public func boolValue() throws -> Bool {
         return try unwrap(value: bool)
     }
     
+    /// `JSONValueSource` value represented as a Int value
+    ///
+    /// - throws: `JSONError` if value is nil, or invalid cast
+    ///
+    /// - returns: Int value from JSON Value
     public func intValue() throws -> Int {
        return try unwrap(value: int)
     }
     
+    /// `JSONValueSource` value represented as a Float value
+    ///
+    /// - throws: `JSONError` if value is nil, or invalid cast
+    ///
+    /// - returns: Float value from JSON Value
     public func floatValue() throws -> Float {
         return try unwrap(value: float)
     }
     
+    /// `JSONValueSource` value represented as a Double value
+    ///
+    /// - throws: `JSONError` if value is nil, or invalid cast
+    ///
+    /// - returns: Double value from JSON Value
     public func doubleValue() throws -> Double {
         return try unwrap(value: double)
     }
     
+    /// `JSONValueSource` value represented as a String value
+    ///
+    /// - throws: `JSONError` if value is nil, or invalid cast
+    ///
+    /// - returns: String from  current JSON Value
     public func stringValue() throws -> String {
         return try unwrap(value: string)
     }

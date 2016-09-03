@@ -8,14 +8,19 @@
 
 import Foundation
 
+/// Protocol that encapsulates all number value types
 public protocol JSONNumber: JSONValueType {
     
+    /// Casts NSNumber to `JSONNumber` type
+    ///
+    /// - parameter number: NSNumber object to be casted
+    ///
+    /// - returns: Value type with value of NSNumber
     static func from(number: NSNumber) -> Self
         
 }
 
 extension Int8: JSONNumber {
-    
     public static func from(number: NSNumber) -> Int8 {
         return number.int8Value
     }

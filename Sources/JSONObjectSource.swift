@@ -8,21 +8,31 @@
 
 import Foundation
 
+/// A type that is an container for a JSON Object 
 public protocol JSONObjectSource: JSONValueType {
     
+    /// JSONKeySource for the object
     associatedtype KeySource: JSONKeySource
-        
+    
+    /// Returned Type when accessing a value with key
     associatedtype ValueType
     
     var dictionary: [String: AnyObject] { get }
     
     init(dictionary: [String: AnyObject])
     
+
+    /// Required to access value for key
+    ///
+    /// - parameter key: a key for the value
+    ///
+    /// - returns: ValueType for value at key
     subscript(key: KeySource) -> ValueType { get }
     
 }
 
 extension JSONObjectSource where ValueType: JSONValueSource {
+    
     public subscript(key: KeySource) -> ValueType {
         get {
             return ValueType(rawValue: dictionary[key.keyValue])
