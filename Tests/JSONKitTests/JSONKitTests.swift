@@ -54,6 +54,14 @@ class JSONKitTests: XCTestCase {
         case fish
     }
     
+    func testJSONObjectSourceFromData() {
+        let jsonURL = URL(fileURLWithPath: self.path() + "/Supporting/test.json")
+        let data = try! Data(contentsOf: jsonURL)
+        
+        let object = JSONObject<JSONDefaultKey>(data: data)
+        XCTAssertNotNil(object)
+    }
+    
     func testRawValueFromJSONValue() {
         let rawValue = json[.integer].rawValue
         XCTAssertNotNil(rawValue)
@@ -183,7 +191,20 @@ class JSONKitTests: XCTestCase {
             if let dates = dates {
                 XCTAssertEqual(dates, [Date(timeIntervalSince1970: 1472722906), Date(timeIntervalSince1970: 1472722907)])
             }
-        
+    }
+    
+    func testIntValueFromJSONValue() {
+        do {
+            let intValue = try json[.integer].intValue()
+            XCTAssertEqual(intValue, 7)
+        } catch {
+          //  XCTAssertEq
+        }
+    }
+    
+    func testMissingIntValue() {
+        XCTAssertThrowsError(try json[.invalidKey].intValue(), "Should be missing value", { (error) in
+        })
     }
     
     

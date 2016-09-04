@@ -25,6 +25,21 @@ public protocol JSONTransformer {}
 /// Default transformer used for `JSONValue`
 public struct JSONDefaultTransformer: JSONTransformer {}
 
+/// A type that acts a wrapper around a JSON value
+public protocol JSONValueRepresentable {
+    
+    typealias RawValue = AnyObject?
+    
+    var rawValue: Self.RawValue { get }
+    
+  //  init(rawValue: Self.RawValue)
+    
+    associatedtype TransformerType: JSONTransformer = JSONDefaultTransformer
+    
+    init(rawValue: AnyObject?)
+    
+}
+
 /// Implement this protocol on types to support casting from JSON value to the object
 public protocol JSONCustomConvertible {
     
@@ -47,23 +62,26 @@ extension String: JSONValueType {
     }
 }
 
-/// A type that acts a wrapper around a JSON value
-public protocol JSONValueSource {
+
+
+
+
+public protocol JSONValueSource: JSONValueRepresentable {
     
-    var rawValue: AnyObject? { get }
+    associatedtype KeySource: JSONKeySource = JSONDefaultKey
     
-    init(rawValue: AnyObject?)
+    var key: String? { get }
     
-    associatedtype KeySource: JSONKeySource
-    
-    associatedtype JSONType = JSONValueType
-    
-    associatedtype TransformerType: JSONTransformer
-    
+    init(rawValue: AnyObject?, key: String)
+
 }
 
 public protocol JSONKeyProvider {
+    
     var key: String? { get }
+    
+    init(rawValue: AnyObject?, key: String)
+    
 }
 
 
@@ -80,6 +98,8 @@ public protocol JSONObjectSource: JSONValueType {
     
     init(dictionary: [String: AnyObject])
     
+    init?(data: Data)
+    
     
     /// Required to access value for key
     ///
@@ -94,10 +114,12 @@ extension JSONObjectSource where ValueType: JSONValueSource {
     
     public subscript(key: KeySource) -> ValueType {
         get {
-            return ValueType(rawValue: dictionary[key.keyValue])
+            
+            return ValueType(rawValue: dictionary[key.keyValue], key: key.keyValue)
         }
     }
 }
+
 
 public extension JSONObjectSource {
     
@@ -137,21 +159,29 @@ protocol JSONValueProvider: JSONValueSource, JSONNumberProvider, JSONPrimitiveVa
 
 /// Default container for `JSONValueProvider`
 public struct JSONAnyValue<Keys:JSONKeySource, Transformer: JSONTransformer>: JSONValueProvider {
+    
+    public init(rawValue: AnyObject?, key: String) {
+        self.rawValue = rawValue
+        self.key = key
+    }
+    
+    public init(rawValue: AnyObject?) {
+        self.rawValue = rawValue
+        // Source key is unknown, set to nil
+        self.key = nil
+    }
+
     /// Value that the wrapper contains
     public let rawValue: AnyObject?
     
     /// The source key which this value came from
-    public var key: String?
+    public let key: String?
     
     /// JSONKeySource to used with nested JSON Objects
     public typealias KeySource = Keys
     
     /// Sets the `JSONTransformer` type to generic parameter `Transformer`
     public typealias TransformerType = Transformer
-    
-    public init(rawValue: AnyObject?) {
-        self.rawValue = rawValue
-    }
     
 }
 
@@ -277,7 +307,7 @@ public protocol JSONThrowable: JSONKeyProvider {
     func getJSONError() -> JSONError
 }
 
-extension JSONValueSource where Self: JSONThrowable {
+extension JSONValueRepresentable where Self: JSONThrowable {
     
     public func getJSONError() -> JSONError {
         if rawValue == nil {
@@ -335,7 +365,7 @@ extension JSONValueSource where Self: JSONThrowable, Self: JSONPrimitiveValuePro
     public func stringValue() throws -> String { return try unwrap(value: string) }
 }
 
-extension JSONValueSource where Self: JSONThrowable, Self: JSONAdditionalValueTypesProvider {
+extension JSONValueRepresentable where Self: JSONThrowable, Self: JSONAdditionalValueTypesProvider {
     
     public func int16Value() throws -> Int16 { return try unwrap(value: int16) }
     
@@ -373,14 +403,14 @@ extension JSONValueSource where Self: JSONThrowable, Self: JSONArrayProvider {
         return try unwrap(value: _array(isAtomic: true))
     }
     
-    func arrayValue<T: RandomAccessCollection>() throws -> T where T.Iterator.Element: JSONValueType {
+    public func arrayValue<T: RandomAccessCollection>() throws -> T where T.Iterator.Element: JSONValueType {
         return try _arrayValue()
     }
 }
 
 extension JSONValueSource where Self: JSONThrowable, Self: JSONArrayProvider, Self: JSONEnumProvider {
     
-    func arrayValue<T: RandomAccessCollection>() throws -> T where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
+    public func arrayValue<T: RandomAccessCollection>() throws -> T where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
         
         if let enums: [T.Iterator.Element] = array(), let collection = enums as? T {
             return collection
@@ -443,7 +473,7 @@ extension JSONValueSource where Self: JSONPrimitiveValueProvider, Self: JSONNumb
     }
 }
 
-extension JSONValueSource where Self: JSONAdditionalValueTypesProvider, Self: JSONNumberProvider {
+extension JSONValueRepresentable where Self: JSONAdditionalValueTypesProvider, Self: JSONNumberProvider {
     
     public var int16: Int16? { return number() }
     
@@ -489,7 +519,8 @@ public extension JSONValueSource where Self: JSONObjectProvider {
     
     public subscript(key: KeySource) -> Self {
         get {
-            return Self(rawValue: dictionary?[key.keyValue])
+            return Self(rawValue: dictionary?[key.keyValue], key: key.keyValue)
+           // return Self(rawValue: dictionary?[key.keyValue])
         }
     }
 }
@@ -515,7 +546,7 @@ extension JSONNumberProvider {
     }
 }
 
-extension JSONValueSource where Self: JSONNumberProvider {
+extension JSONValueRepresentable where Self: JSONNumberProvider {
     
     public var rawNumber: NSNumber? {
         return rawValue as? NSNumber
@@ -534,14 +565,14 @@ public protocol JSONArrayProvider: JSONPrimitiveValueProvider {
     var rawArray: [AnyObject]? { get }
 }
 
-extension JSONValueSource where Self: JSONArrayProvider {
+extension JSONValueRepresentable where Self: JSONArrayProvider {
     
     public var rawArray: [AnyObject]?
     {
         return rawValue as? [AnyObject]
     }
     
-    public func _array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: JSONCustomConvertible {
+    func _array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: JSONCustomConvertible {
         
         let transformer = TransformerType.self
         if let results =  rawArray?.flatMap({ (num) ->  T.Iterator.Element? in
@@ -554,7 +585,7 @@ extension JSONValueSource where Self: JSONArrayProvider {
     }
     
     
-    public func _arrayValue<T: RandomAccessCollection>(isAtomic atomic: Bool = true) -> T where T.Iterator.Element: JSONCustomConvertible {
+    func _arrayValue<T: RandomAccessCollection>(isAtomic atomic: Bool = true) -> T where T.Iterator.Element: JSONCustomConvertible {
         
         if let values:T = _array(isAtomic: atomic) {
             return values
@@ -575,7 +606,7 @@ extension JSONValueSource where Self: JSONArrayProvider {
 extension JSONValueSource where Self: JSONArrayProvider {
     public subscript(_ index: Int) -> Self {
         get {
-            return Self(rawValue: rawArray?[index])
+            return Self(rawValue: rawArray?[index], key: "Index \(index)")
         }
     }
 }
@@ -584,7 +615,7 @@ public protocol JSONEnumProvider {
     func `enum`<T: RawRepresentable>() -> T? where T.RawValue: JSONValueType
 }
 
-public extension JSONValueSource  {
+public extension JSONValueRepresentable where Self: JSONEnumProvider  {
     public func `enum`<T: RawRepresentable>() -> T? where T.RawValue: JSONValueType {
         
         if  let transformed = T.RawValue.map(value: rawValue, for: TransformerType.self) {
@@ -595,7 +626,7 @@ public extension JSONValueSource  {
     }
 }
 
-extension JSONValueSource where Self: JSONArrayProvider, Self: JSONEnumProvider {
+extension JSONValueRepresentable where Self: JSONArrayProvider, Self: JSONEnumProvider {
     // Support an array of enums
     func array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
         if let array: [T.Iterator.Element.RawValue] = array(isAtomic: true) {
