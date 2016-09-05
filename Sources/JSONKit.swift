@@ -25,15 +25,13 @@ public protocol JSONTransformer {}
 /// Default transformer used for `JSONValue`
 public struct JSONDefaultTransformer: JSONTransformer {}
 
-/// A type that acts a wrapper around a JSON value
+/// A type that acts a wrapper around a JSON raw value
 public protocol JSONValueRepresentable {
     
     typealias RawValue = AnyObject?
     
     var rawValue: Self.RawValue { get }
-    
-  //  init(rawValue: Self.RawValue)
-    
+        
     associatedtype TransformerType: JSONTransformer = JSONDefaultTransformer
     
     init(rawValue: AnyObject?)
@@ -50,6 +48,7 @@ public protocol JSONCustomConvertible {
     ///
     /// - returns: Initalized self from value, or if not successful, nil
     static func map(value: Any, for transformer: JSONTransformer.Type) -> Self?
+    
     
 }
 
@@ -586,9 +585,11 @@ extension JSONValueRepresentable where Self: JSONArrayProvider {
     func _array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: JSONCustomConvertible {
         
         let transformer = TransformerType.self
+        
         if let results =  rawArray?.flatMap({ (num) ->  T.Iterator.Element? in
             return T.Iterator.Element.map(value: num, for: transformer)
-        }), !isAtomic || results.count == rawArray?.count {
+        }),
+            !isAtomic || results.count == rawArray?.count {
             return results as? T
         } else {
             return nil
@@ -637,19 +638,33 @@ public extension JSONValueRepresentable where Self: JSONEnumProvider  {
     }
 }
 
-extension JSONValueRepresentable where Self: JSONArrayProvider, Self: JSONEnumProvider {
+public extension JSONValueRepresentable where Self: JSONArrayProvider, Self: JSONEnumProvider {
+    
     // Support an array of enums
-    func array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
+    public func array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T? where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
+       
+        
         if let array: [T.Iterator.Element.RawValue] = array(isAtomic: true) {
             
             let enumArray = array.flatMap({ (element) -> T.Iterator.Element? in
                 return T.Iterator.Element(rawValue: element)
             })
             
-            return enumArray as? T
+            if !isAtomic || enumArray.count == array.count {
+                return enumArray as? T
+            }
         }
         
         return nil
     }
+    
+    public func array<T: RandomAccessCollection>(isAtomic: Bool = true) -> T where T.Iterator.Element: RawRepresentable, T.Iterator.Element.RawValue: JSONValueType {
+        if let array: T = array(isAtomic: isAtomic) {
+            return array
+        } else {
+            return [] as! T
+        }
+    }
+    
 }
 
