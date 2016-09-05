@@ -76,6 +76,15 @@ public protocol JSONValueSource: JSONValueRepresentable {
 
 }
 
+public extension JSONValueSource {
+    func mapped<T: JSONValueType>  () -> T? {
+        if let value = rawValue {
+            return T.map(value: value, for: TransformerType.self)
+        }
+        return nil
+    }
+}
+
 public protocol JSONKeyProvider {
     
     var key: String? { get }
@@ -190,6 +199,8 @@ public typealias JSONValue<Keys: JSONKeySource> = JSONAnyValue<Keys, JSONDefault
 
 /// A convenience JSON object container that uses `JSONValue`
 public typealias JSONObject<Keys: JSONKeySource> = JSONAnyObject<JSONValue<Keys>>
+
+public typealias JSONCustomObject<Keys: JSONKeySource, TransformerType: JSONTransformer> = JSONAnyObject<JSONAnyValue<Keys, TransformerType>>
 
 
 /// Protocol that encapsulates all number value types
