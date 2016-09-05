@@ -1,9 +1,11 @@
-# JSONKit
-JSONKit is a JSON mapping framework that makes JSON serialization code safer, cleaner and a lot more fun to write. What makes JSONKit awesome, is it's protocol orientated design combined with generics, which results in a powerful and customizable JSON serialization library.
+# JSON Kit
+JSON Kit is a JSON mapping framework that makes JSON serialization code safer, cleaner and a lot more fun to write. It combines protocol orientated design with generics to create a powerful interface for working with JSON in Swift.
 
 ## Features
+- [x] Strongly typed keys, leverage the compiler to autocomplete keys and validate keys
 - [x] Easily map value types, arrays and enums from JSON values
-- [x] Supports custom types
+- [x] Throwable value access, avoid large if let/guard blocks
+- [x] Easily add support for custom types
 - [x] Modular, extend or modify behaviour of mapping
 
 ## Why it is awesome
@@ -25,31 +27,10 @@ if let geometryJSON: JSONObject<GEOObjectKey> = featureJSON[.geometry].object() 
     coordinates = geometryJSON[.coordinates].array()
 }
 ```
-
-## Integration
-### Swift Package Manager
-Add `JSONKit` to your `Package.swift`:
-```swift
-import PackageDescription
-
-let package = Package(
-    name: "MyApp",
-    dependencies: [
-        .Package(url: "https://github.com/BennyKJohnson/JSONKit.git", majorVersion: 0, minor: 2)
-    ]
-)
-```
-Import the JSONKit library:
-```swift
-import JSONKit
-```
-### Manually
-You can also manually add JSONKit to your project by copying `JSONKit.swift` into your project.
-
 ## Getting Started
 ### Initalizing
 
-JSONKit has strongly typed keys in order to improve safety. Keys are not accessed via a traditional string. Instead we define an enum with the collection of available keys.
+JSON Kit has strongly typed keys in order to improve safety. Keys are not accessed via a traditional string. Instead we define an enum with the collection of available keys.
 
 ```swift
 // Enums must implement JSONKeySource
@@ -60,7 +41,9 @@ enum MovieInfoKey: String, JSONKeySource {
     case releaseDate = "release_date"
 }
 ```
-Initalize a JSON Object for our keys
+This may seem inconvenient at first, but provides many benefits over a stringly typed approach, such as autocomplete, compiler verified and also encourages good practice through grouping related keys.
+
+Initalize a JSON Object for our keys, `JSONObject` provides the primary interface for working with a dictionary of key/value pairs.
 ```swift
 let json = JSONObject<MovieInfoKey>(data: dataFromNetwork)
 ```
@@ -88,14 +71,15 @@ if let geometryJSON: JSONObject<GEOObjectKey> = featureGEOJSON[.geometry].object
 }
 ```
 #### Subscripts
-JSONKit supports chaining subscripts together in order to values.
+You can also chain subscripts together in order to access values.
 ```swift
 // Chain several subscripts together to access specific values
+// Note that the keys available are restricted to your current key set
 let latitude = json[.geometry][.coordinates][0][0].double
 ```
 
 #### Array mapping
-JSONKit supports automatic mapping of JSON array into value types. JSONKit uses the array type of variable to determine how to map each value.
+Automatically map a JSON array into an array of value types. JSON Kit uses the array type of variable to determine how to map each value.
 ```swift
 //Getting an array of strings from a JSON Object
 let names: [String]? = json[.names].array()
@@ -122,6 +106,7 @@ for featureGEOJSON in json[.features].array() as [JSONObject<GEOFeatureKey>] {
 Array mapping is atomic, meaning if one value can't be mapped, the whole operation fails and nil or empty array is returned instead.
 It's possible to change this behaviour using the `isAtomic` parameter for `array`.
 ```swift
+// Will return any values successfully converted
 numbers = json[.numbers].array(isAtomic: false)
 ```
 #### Enum Mapping
@@ -138,8 +123,8 @@ You can even automatically map an array of values to an array of enums
 ```swift
 let statuses: [ReleaseStatus] = json[.statuses].array()
 ```
-#### Throw access
-JSONKit also has support for throwable access of values for `JSONObject`.
+#### Throw value access
+Throwable functions are named [type]Value, for example  `arrayValue`, `enumValue` or `objectValue`. These functions throw `JSONError` if the value doesn't exist or it can't convert to the required value, instead of returning nil.
 ```swift
 struct Movie {
 
@@ -156,9 +141,9 @@ struct Movie {
 ```
 ## Customizing
 ### Custom Value
-In order to add support to your own types, you need to implement `JSONValueType` on the type. This will give you array mapping support and for free.
+In order to add support to your own types, you need to implement `JSONValueType` on the type. This will give you array mapping support for free.
 ```swift
-// Add support for CLLocationCoordinate2D, by translating JSON numbers as a coordinate
+// Add support for CLLocationCoordinate2D, by translating JSON numbers to a coordinate
 extension CLLocationCoordinate2D: JSONValueType {
     public static func map(value: Any, for transformer: JSONTransformer.Type) -> CLLocationCoordinate2D? {
         if let coordinateValues = value as? [NSNumber],coordinateValues.count == 2 {
@@ -170,7 +155,7 @@ extension CLLocationCoordinate2D: JSONValueType {
 
   let coordinates: [CLLocationCoordinate2D] = featureGEOJSON[.geometry][.coordinates].array()
 ```
-Example for adding support for `Date`
+Another example of custom types, adding support for `Date`
 ```swift
 extension Date: JSONValueType {
     public static func map(value: Any, for transformer: JSONTransformer.Type) -> Date? {
@@ -188,18 +173,19 @@ extension JSONValueSource {
     }
 }
 
+// Get a date value
 let date = json[.createdAt].date
 ```
-### Customizing how a value is mapped per document
-JSONKit supports customizations for document specific behaviour, which is useful if you need to map json docs from different sources. For example you need to map two different date formats, like epoch or ISODate to `Date`, in this case the global extension on date won't work. This requires a use of a `JSONTransformer`.
+### Mapping different formats to the same type
+Above you saw an example of converting an epoch date directly to `Date`. If you need to support multiple representations of the same type, you will need to rely on a `JSONTransformer` to modify how values are mapped. For example you may need to support both epoch and ISODates to `Date`.
 
-We first need to define a struct that implements JSONTransformer
+We first need to define a struct that implements `JSONTransformer`, this type will act as an identifier for the `map` function.
 ```swift
 // Our CustomJSONTransformer
 public struct CustomValueTransformer: JSONTransformer {}
 ```
 
-Now we define a typealias for a `JSONCustomObject`, where we pass in our Keys and our new `JSONTransformer`.
+Now we define a typealias for a `JSONCustomObject`, where we pass in our Keys and our new `JSONTransformer`. We will use this object to access values. A general rule to follow is define a `JSONCustomObject` and `JSONTransformer` per document.
 ```swift
 typealias MyJSONObject<Keys: JSONKeySource> = JSONCustomObject<Keys, CustomValueTransformer>
 ```
@@ -224,7 +210,29 @@ extension Date: JSONValueType {
     }
 }
 ```
+Now we use our new `MyJSONObject` as an interface, any values accessed will be mapped using the custom transformer.
 ```swift
 let json = MyJSONObject<TestKeys>(dictionary: jsonDictionary)
+// All date values using MyJSONObject are decoded from ISODate
 let dates:[Date] = json[.timelineDate].array()
 ```
+
+## Integration
+### Swift Package Manager
+Add `JSONKit` to your `Package.swift`:
+```swift
+import PackageDescription
+
+let package = Package(
+    name: "MyApp",
+    dependencies: [
+        .Package(url: "https://github.com/BennyKJohnson/JSONKit.git", majorVersion: 0, minor: 2)
+    ]
+)
+```
+Import the JSONKit library:
+```swift
+import JSONKit
+```
+### Manually
+You can also manually add JSON Kit to your project by copying `JSONKit.swift` into your project.
