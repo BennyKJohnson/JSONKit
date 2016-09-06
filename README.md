@@ -1,5 +1,5 @@
 # JSON Kit
-JSON Kit is a JSON mapping framework that makes JSON serialization code safer, cleaner and a lot more fun to write. It combines protocol orientated design with generics to create a powerful interface for working with JSON in Swift.
+JSON Kit is a JSON mapping framework that makes JSON serialization code safer, cleaner and a lot more fun to write. It combines protocol oriented design with generics to create a powerful interface for working with JSON in Swift.
 
 ## Features
 - [x] Strongly typed keys, leverage the compiler to autocomplete keys and validate keys
@@ -20,7 +20,7 @@ if let geometryDict = jsonDictionary["geometry"] as? [String: AnyObject] {
     }
 }
 ```
-With JSONKit you can write the above code like this:
+With JSON Kit you can write the above code like this:
 ```swift
 var coordinates: [CLLocationCoordinate2D]?
 if let geometryJSON: JSONObject<GEOObjectKey> = featureJSON[.geometry].object() {
@@ -217,8 +217,30 @@ let json = MyJSONObject<TestKeys>(dictionary: jsonDictionary)
 let dates:[Date] = json[.timelineDate].array()
 ```
 
+### Verify collections
+JSON Kit allows you to modify an extracted collection before it is returned. This is useful if you need to verify a collection of a certain type.
+
+```swift
+extension String {
+    public static func verify(array: [String], for transformer: JSONTransformer.Type) -> [String]? {
+      // Check if the string array is not an array with an empty string [" "]
+        if let firstElement = array.first, array.count == 1 {
+            if firstElement.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+              // Not a valid collection
+                return nil
+            }
+        }
+        return array
+    }
+}
+```
 ## Integration
+### Manually (recommended)
+ Add JSON Kit to your project by copying `JSONKit.swift` into your project. Having JSON Kit in the same module will allow you to modify JSON Kit behaviour that is defined with existing protocol extensions.
+
 ### Swift Package Manager
+You can add JSON Kit as a framework, however you won't be able to modify existing protocol extensions.
+
 Add `JSONKit` to your `Package.swift`:
 ```swift
 import PackageDescription
@@ -234,5 +256,3 @@ Import the JSONKit library:
 ```swift
 import JSONKit
 ```
-### Manually
-You can also manually add JSON Kit to your project by copying `JSONKit.swift` into your project.

@@ -31,7 +31,7 @@ public protocol JSONValueRepresentable {
     typealias RawValue = AnyObject?
     
     var rawValue: Self.RawValue { get }
-        
+    
     associatedtype TransformerType: JSONTransformer = JSONDefaultTransformer
     
     init(rawValue: AnyObject?)
@@ -49,10 +49,19 @@ public protocol JSONCustomConvertible {
     /// - returns: Initalized self from value, or if not successful, nil
     static func map(value: Any, for transformer: JSONTransformer.Type) -> Self?
     
+    /// Use to verify an array of values
+    static func verify(array: [Self], for transformer: JSONTransformer.Type) -> [Self]?
     
 }
 
+
 public protocol JSONValueType: JSONCustomConvertible {}
+
+extension JSONCustomConvertible {
+    public static func verify(array: [Self], for transformer: JSONTransformer.Type) -> [Self]? {
+        return array
+    }
+}
 
 extension String: JSONValueType {
     
@@ -586,9 +595,9 @@ extension JSONValueRepresentable where Self: JSONArrayProvider {
         
         let transformer = TransformerType.self
         
-        if let results =  rawArray?.flatMap({ (num) ->  T.Iterator.Element? in
+        if let initialResults =  rawArray?.flatMap({ (num) ->  T.Iterator.Element? in
             return T.Iterator.Element.map(value: num, for: transformer)
-        }),
+        }), let results = T.Iterator.Element.verify(array: initialResults, for: transformer),
             !isAtomic || results.count == rawArray?.count {
             return results as? T
         } else {
